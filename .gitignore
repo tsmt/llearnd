@@ -1,3 +1,6 @@
+llearngpio
 *.o
 *.so
 lib*.so.*
+*.gch*
+*.tmp

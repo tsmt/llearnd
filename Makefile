@@ -9,21 +9,18 @@ CFLAGS	= $(DEBUG) -Wall $(INCLUDE) -Winline -pipe
 LDFLAGS	= -L/usr/local/lib
 LDLIBS    = -lwiringPi -lwiringPiDev -lpthread -lm
 
-SRC= llearngpio.c
+TARGET=llearngpio
+SRC= src/llearngpio.c src/mpu6050.c
 OBJ= $(SRC:.c=.o)
-BINS= $(SRC:.c=)
 
-all: $(BINS)
-
-llearngpio: src/llearngpio.o
+llearngpio: $(OBJ)
 	@echo link $@
-	@$(CC) -o $@ src/$@.o $(LDFLAGS) $(LDLIBS)
+	@$(CC) -o $(TARGET) $(OBJ) $(LDFLAGS) $(LDLIBS)
 
 .c.o:
 	@echo compile $<
 	@$(CC) -c $(CFLAGS) $< -o $@
 
 clean:
-	@rm $(BINS)
-	@cd src
+	@rm $(TARGET)
 	@rm -f $(OBJ)
