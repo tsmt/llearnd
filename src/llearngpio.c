@@ -18,8 +18,10 @@ int main(int argc, char* argv[]) {
         error(mpu, "mpu6050 Setup");
     }
     while(1) {
-        printf("mpu - %d %d %d\n", mpu6050GetAx(mpu),
-                mpu6050GetAy(mpu), mpu6050GetAz(mpu));
+        printf("mpu - %d %d %d %d %d %d %d\n", mpu6050GetAx(mpu),
+                mpu6050GetAy(mpu), mpu6050GetAz(mpu),
+                mpu6050GetGx(mpu), mpu6050GetGy(mpu),
+                mpu6050GetGz(mpu), mpu6050GetTmp(mpu));
         for(i = 0; i < 8; i++) {
             printf("%d[%d/%d]", i, analogRead(100+i), analogRead(110+i));
         }
