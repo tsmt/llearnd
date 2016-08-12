@@ -26,7 +26,7 @@ int main(int argc, char* argv[]) {
                 mpu6050GetAy(), mpu6050GetAz(),
                 mpu6050GetGx(), mpu6050GetGy(),
                 mpu6050GetGz(), mpu6050GetTmp());
-        printf("sht21 - %d %d\n", sht21GetTemp(), sht21GetHum());
+        printf("sht21 - %f %f\n", sht21GetTemp(), sht21GetHum());
         for(i = 0; i < 8; i++) {
             printf("%d[%d/%d]", i, analogRead(100+i), analogRead(110+i));
         }
