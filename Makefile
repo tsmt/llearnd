@@ -10,7 +10,7 @@ LDFLAGS	= -L/usr/local/lib
 LDLIBS    = -lwiringPi -lwiringPiDev -lpthread -lm
 
 TARGET=llearngpio
-SRC= src/llearngpio.c src/mpu6050.c
+SRC= src/llearngpio.c src/mpu6050.c src/sht21.c
 OBJ= $(SRC:.c=.o)
 
 llearngpio: $(OBJ)

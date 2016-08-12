@@ -16,11 +16,11 @@
 #define MPU6050_TMP 0x41
 
 int mpu6050Setup();
-short mpu6050GetAx(int fd);
-short mpu6050GetAy(int fd);
-short mpu6050GetAz(int fd);
-short mpu6050GetGx(int fd);
-short mpu6050GetGy(int fd);
-short mpu6050GetGz(int fd);
-short mpu6050GetTmp(int fd);
+short mpu6050GetAx();
+short mpu6050GetAy();
+short mpu6050GetAz();
+short mpu6050GetGx();
+short mpu6050GetGy();
+short mpu6050GetGz();
+short mpu6050GetTmp();
 #endif
