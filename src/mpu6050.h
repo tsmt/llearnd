@@ -15,12 +15,16 @@
 #define MPU6050_GZ 0x47
 #define MPU6050_TMP 0x41
 
+#define MPU6050_ACC_SCALE(x) (x / 16384.0)
+#define MPU6050_GYRO_SCALE(x) (x / 131.0)
+#define MPU6050_TEMP_SCALE(x) ((x / 340.0) + 36.53)
+
 int mpu6050Setup();
-short mpu6050GetAx();
-short mpu6050GetAy();
-short mpu6050GetAz();
-short mpu6050GetGx();
-short mpu6050GetGy();
-short mpu6050GetGz();
-short mpu6050GetTmp();
+float mpu6050GetAx();
+float mpu6050GetAy();
+float mpu6050GetAz();
+float mpu6050GetGx();
+float mpu6050GetGy();
+float mpu6050GetGz();
+float mpu6050GetTmp();
 #endif
