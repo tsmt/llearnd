@@ -32,7 +32,7 @@ int sht21Setup() {
 }
 
 float sht21GetTemp() {
-    short val;
+    int val = 0;
     wiringPiI2CWrite(fd, SHT21_TEM);
     delay(SHT21_TEM_WAIT);
     data[0] = wiringPiI2CRead(fd);
@@ -48,7 +48,7 @@ float sht21GetTemp() {
 }
 
 float sht21GetHum() {
-    short val;
+    int val = 0;
     wiringPiI2CWrite(fd, SHT21_HUM);
     delay(SHT21_HUM_WAIT);
     data[0] = wiringPiI2CRead(fd);
@@ -61,4 +61,3 @@ float sht21GetHum() {
     val &= SHT21_STATUS_BITMASK;
     return (-6.0+((125.0*val)/(1<<16)));
 }
-
