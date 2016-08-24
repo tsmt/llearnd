@@ -9,7 +9,7 @@
 #include <wiringPi.h>
 #include <mcp3004.h>
 #include <errno.h>
-#include "llearngpio.h"
+#include "llearnd.h"
 #include "mpu6050.h"
 #include "sht21.h"
 
@@ -24,7 +24,7 @@ void s0_impulse(void) {
 }
 
 int main(int argc, char* argv[]) {
-    int 22r;
+    int r;
 
     mkdir_p(devPath);
 

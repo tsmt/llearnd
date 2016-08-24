@@ -9,11 +9,11 @@ CFLAGS	= $(DEBUG) -Wall $(INCLUDE) -Winline -pipe
 LDFLAGS	= -L/usr/local/lib
 LDLIBS    = -lwiringPi -lwiringPiDev -lpthread -lm
 
-TARGET=llearngpio
-SRC= src/llearngpio.c src/mpu6050.c src/sht21.c
+TARGET=llearnd
+SRC= src/llearnd.c src/mpu6050.c src/sht21.c
 OBJ= $(SRC:.c=.o)
 
-llearngpio: $(OBJ)
+llearnd: $(OBJ)
 	@echo link $@
 	@$(CC) -o $(TARGET) $(OBJ) $(LDFLAGS) $(LDLIBS)
 
