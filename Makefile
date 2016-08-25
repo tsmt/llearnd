@@ -3,10 +3,10 @@
 #DEBUG	= -g -O0
 DEBUG	= -O3
 CC	= gcc
-INCLUDE	= -I/usr/local/include
+INCLUDE	= -I/usr/local/include -Iinclude
 CFLAGS	= $(DEBUG) -Wall $(INCLUDE) -Winline -pipe
 
-LDFLAGS	= -L/usr/local/lib
+LDFLAGS	= -L/usr/local/lib -Llib
 LDLIBS    = -lwiringPi -lwiringPiDev -lpthread -lm
 
 TARGET=llearnd

@@ -4,5 +4,6 @@ llearnd
 *.o
 *.so
 lib*.so.*
+!lib/lib*.so*
 *.gch*
 *.tmp

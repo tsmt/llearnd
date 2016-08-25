@@ -12,6 +12,8 @@
 #include "llearnd.h"
 #include "mpu6050.h"
 #include "sht21.h"
+#include "MQTTClient.h"
+#include "MQTTClientPersistence.h"
 
 /* Global values */
 float currentValues[SENSORCOUNT];
