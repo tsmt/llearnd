@@ -73,6 +73,7 @@ int stmRun() {
             error(1, "default machine state forbidden!");
     }
     /* loop machine */
+    r = 0;
     while (r == 0) {
         switch(stmState) {
             case STM_STATE_WAIT:
