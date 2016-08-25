@@ -29,6 +29,8 @@
 #define STM_STATE_WAIT 0
 #define STM_STATE_RUNNING 1
 #define STM_STATE_POSTPROCESS 2
+#define STM_STATE_PREPROCESS 3
+#define STM_STATE_INIT 99
 #define STM_FREQUENCY_MS 50
 
 #define M_STATE_OFF 0
@@ -36,22 +38,26 @@
 #define M_STATE_ON_RUNNING 2
 
 int stmRun();
+int stmGetState();
+int stmGetMachineState();
 int stmWait();
 int stmPreProcess();
 int stmRunning();
 int stmPostProcess();
 int stPostDevInfo();
 
-int error(int num, char msg[]);
+void error(int num, char msg[]);
+void fatal(int num, char msg[]);
 
 int mkdir_p(const char *path);
+int initLog();
 int wrLog();
 
 int collectLedData();
 void collectSensorData(void);
 void s0_impulse(void);
 
-int mqttConnect();
+int mqttPostMessage(char* topic, char* message, char retained);
 int mqttPostDeviceStats();
 int mqttPostMachineStats();
 

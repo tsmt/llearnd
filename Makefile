@@ -7,7 +7,7 @@ INCLUDE	= -I/usr/local/include -Iinclude
 CFLAGS	= $(DEBUG) -Wall $(INCLUDE) -Winline -pipe
 
 LDFLAGS	= -L/usr/local/lib -Llib
-LDLIBS    = -lwiringPi -lwiringPiDev -lpthread -lm
+LDLIBS    = -lwiringPi -lwiringPiDev -lpthread -lm -lpaho-mqtt3c
 
 TARGET=llearnd
 SRC= src/llearnd.c src/mpu6050.c src/sht21.c

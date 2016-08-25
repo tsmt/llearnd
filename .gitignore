@@ -7,3 +7,4 @@ lib*.so.*
 !lib/lib*.so*
 *.gch*
 *.tmp
+src/config.h
