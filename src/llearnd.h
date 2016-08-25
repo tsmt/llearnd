@@ -21,7 +21,8 @@
 #define LED_KURZ 8
 #define LED_FLECKEN 9
 
-#define TIMEPERIOD_COLLECT 100
+#define TIMEP_SENS_COLL 1000
+#define TIMEP_SENS_POST 5000
 #define TIMEPERIOD_PRINT 500
 #define TIMEPERIOD_PRINTLOG 5000
 #define TIMEPERIOD_MS_DEBUNK 60
@@ -58,7 +59,6 @@ void collectSensorData(void);
 void s0_impulse(void);
 
 int mqttPostMessage(char* topic, char* message, char retained);
-int mqttPostDeviceStats();
-int mqttPostMachineStats();
+void mqttPostDeviceStats();
 
 #endif

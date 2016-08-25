@@ -17,10 +17,35 @@
 
 /* Global values */
 float currentValues[SENSORCOUNT];
+char* mqttValTopics[SENSORCOUNT] = {
+    "llearnd/gpio/a0",
+    "llearnd/gpio/a1",
+    "llearnd/gpio/a2",
+    "llearnd/gpio/a3",
+    "llearnd/gpio/a4",
+    "llearnd/gpio/a5",
+    "llearnd/gpio/a6",
+    "llearnd/gpio/a7",
+    "llearnd/gpio/a8",
+    "llearnd/gpio/a9",
+    "llearnd/gpio/shum",
+    "llearnd/gpio/stemp",
+    "llearnd/gpio/mtemp",
+    "llearnd/gpio/Ax",
+    "llearnd/gpio/Ay",
+    "llearnd/gpio/Az",
+    "llearnd/gpio/Gx",
+    "llearnd/gpio/Gy",
+    "llearnd/gpio/Gz"
+};
+
 const char devPath[] = "/tmp/llearn";
-unsigned int s0;
-unsigned int stmState;
+unsigned int s0 = 0;
+unsigned int stmState = STM_STATE_INIT;
 unsigned int mState;
+
+unsigned int last_sens_post = 0;
+unsigned int last_sens_coll = 0;
 
 /* MQTT vars */
 MQTTClient mqttc;
@@ -64,8 +89,7 @@ int main(int argc, char* argv[]) {
     mqttc_conopt.password = MQTT_PASSWORD;
 
     if((r = MQTTClient_connect(mqttc, &mqttc_conopt)) != MQTTCLIENT_SUCCESS) {
-        error(r, "mqtt connect");
-        return 0;
+        error(r, "no mqtt connection");
     }
 
     return stmRun();
@@ -73,8 +97,6 @@ int main(int argc, char* argv[]) {
 
 int stmRun() {
     int r;
-    /* set default state */
-    stmState = STM_STATE_INIT;
     /* init statmachine values */
     stmGetState();
     /* loop machine */
@@ -96,6 +118,7 @@ int stmRun() {
         }
         /* check for state change */
         stmGetState();
+        usleep(500);
     }
     fatal(r, "stmRun");
     return 0;
@@ -151,6 +174,7 @@ int stmGetState() {
 }
 
 int stmWait() {
+    /* TODO: write LogFile every X seconds*/
     /* get sensor info */
     /* TODO: every X seconds */
     collectSensorData();
@@ -159,11 +183,9 @@ int stmWait() {
 }
 
 int stmRunning() {
-    /* get sensor info */
-    /* TODO: every X seconds */
+    /* every X seconds */
     collectSensorData();
-    /* TODO: update device info to MQTT every X seconds */
-    /* TODO: update machine info to MQTT evry X seconds */
+    mqttPostDeviceStats();
     /* TODO: write LogFile every X seconds*/
     return 0;
 }
@@ -192,7 +214,7 @@ int mqttPostMessage(char* topic, char* message, char retained) {
     MQTTClient_deliveryToken token;
     if(!MQTTClient_isConnected(mqttc)) {
         if((r = MQTTClient_connect(mqttc, &mqttc_conopt)) != MQTTCLIENT_SUCCESS) {
-            error(r, "mqtt connect");
+            error(r, "can't post, no mqtt connect");
             return 0;
         }
     }
@@ -201,8 +223,17 @@ int mqttPostMessage(char* topic, char* message, char retained) {
     msg.qos = 1;
     msg.retained = retained;
     MQTTClient_publishMessage(mqttc, topic, &msg, &token);
-    MQTTClient_waitForCompletion(mqttc, token, MQTT_TIMEOUT);
+    //MQTTClient_waitForCompletion(mqttc, token, MQTT_TIMEOUT);
     return r;
+}
+
+void mqttPostDeviceStats() {
+    int i = 0;
+    char payload[9];
+    for(i = 0; i < SENSORCOUNT; i++) {
+        sprintf(payload, "%4.04f", currentValues[i]);
+        mqttPostMessage(mqttValTopics[i], payload, 1);
+    }
 }
 
 
