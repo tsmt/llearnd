@@ -16,36 +16,20 @@
 #include "../include/MQTTClient.h"
 
 /* Global values */
+
+/* device Values TODO: array docu */
 float currentValues[SENSORCOUNT];
-char* mqttValTopics[SENSORCOUNT] = {
-    "llearnd/gpio/a0",
-    "llearnd/gpio/a1",
-    "llearnd/gpio/a2",
-    "llearnd/gpio/a3",
-    "llearnd/gpio/a4",
-    "llearnd/gpio/a5",
-    "llearnd/gpio/a6",
-    "llearnd/gpio/a7",
-    "llearnd/gpio/a8",
-    "llearnd/gpio/a9",
-    "llearnd/gpio/shum",
-    "llearnd/gpio/stemp",
-    "llearnd/gpio/mtemp",
-    "llearnd/gpio/Ax",
-    "llearnd/gpio/Ay",
-    "llearnd/gpio/Az",
-    "llearnd/gpio/Gx",
-    "llearnd/gpio/Gy",
-    "llearnd/gpio/Gz"
-};
 
 const char devPath[] = "/tmp/llearn";
+char logfile[256];
 unsigned int s0 = 0;
 unsigned int stmState = STM_STATE_INIT;
 unsigned int mState;
 
-unsigned int last_sens_post = 0;
-unsigned int last_sens_coll = 0;
+time_t currentTime;
+time_t lastDevMqttUpdate;
+time_t lastLog;
+
 
 /* MQTT vars */
 MQTTClient mqttc;
@@ -59,8 +43,9 @@ MQTTClient_connectOptions mqttc_conopt = MQTTClient_connectOptions_initializer;
 */
 int main(int argc, char* argv[]) {
     int r;
-
+    /* set filesystem preferences  */
     mkdir_p(devPath);
+    chmod(devPath, 0777);
 
     if((r = wiringPiSetup()) < 0 ) {
         fatal(r, "wiringPi Setup");
@@ -102,6 +87,7 @@ int stmRun() {
     /* loop machine */
     r = 0;
     while (r == 0) {
+        currentTime = time(NULL);
         switch(stmState) {
             case STM_STATE_WAIT:
                 r = stmWait();
@@ -118,7 +104,13 @@ int stmRun() {
         }
         /* check for state change */
         stmGetState();
-        usleep(500);
+        /* collect new SHT data */
+        collectShtData();
+        collectMpuData();
+        if(currentTime > lastDevMqttUpdate + TIMEP_DEV_MQTT) {
+            mqttPostDeviceStats();
+            lastDevMqttUpdate = time(NULL);
+        }
     }
     fatal(r, "stmRun");
     return 0;
@@ -170,39 +162,42 @@ int stmGetState() {
             stmState = STM_STATE_WAIT;
     }
     mState = m;
+    mqttPostDeviceStats();
     return stmState;
 }
 
 int stmWait() {
-    /* TODO: write LogFile every X seconds*/
-    /* get sensor info */
-    /* TODO: every X seconds */
-    collectSensorData();
-    /* TODO: update device info to MQTT every X seconds */
     return 0;
 }
 
 int stmRunning() {
-    /* every X seconds */
-    collectSensorData();
-    mqttPostDeviceStats();
     /* TODO: write LogFile every X seconds*/
+    if(currentTime > lastLog + TIMEP_LOG_WRITE) {
+        wrLog();
+        lastLog = time(NULL);
+    }
     return 0;
 }
 
 int stmPreProcess() {
-    /* TODO: open logfile, flush it */
-    /* TODO: call machine learning python script to calc approximation */
+    FILE *fp;
+    /* TODO: open logfile, init it */
+    sprintf(logfile, "/tmp/llearn/%d.log", (unsigned int)time(NULL));
+    fp = fopen(logfile, "w+");
+    chmod(logfile, 0777);
+    chown(logfile, 1000, 1000);
+    fprintf(fp, "time,a0,a1,a2,a3,a4,a5,a6,a7,a8,a9,sht21hum,sht21temp,mputemp,ax,ay,az,gx,gy,gz,s0\n");
+    fclose(fp);
 
-    delay(1000);
+    /* TODO: call machine learning python script to calc approximation */
     stmState = STM_STATE_RUNNING;
     mqttPostMessage("llearnd/stm/status", "running", 1);
     return 0;
 }
 
 int stmPostProcess() {
-
-    delay(1000);
+    /* TODO: copy and upload logfile */
+    /* TODO: call machine learning script to use this log as training data */
     stmState = STM_STATE_WAIT;
     mqttPostMessage("llearnd/stm/status", "waiting", 1);
     return 0;
@@ -229,11 +224,35 @@ int mqttPostMessage(char* topic, char* message, char retained) {
 
 void mqttPostDeviceStats() {
     int i = 0;
-    char payload[9];
-    for(i = 0; i < SENSORCOUNT; i++) {
-        sprintf(payload, "%4.04f", currentValues[i]);
-        mqttPostMessage(mqttValTopics[i], payload, 1);
-    }
+    char payload[128];
+    sprintf(payload, "%d,%d,%d,%d,%d,%d,%d,%d,%d,%d",
+                LED_ISON(currentValues[0]), LED_ISON(currentValues[1]),
+                LED_ISON(currentValues[2]), LED_ISON(currentValues[3]),
+                LED_ISON(currentValues[4]), LED_ISON(currentValues[5]),
+                LED_ISON(currentValues[6]), LED_ISON(currentValues[7]),
+                LED_ISON(currentValues[8]), LED_ISON(currentValues[9])
+            );
+    mqttPostMessage("llearnd/device/leds", payload, 1);
+    sprintf(payload, "%f,%f",
+                currentValues[10], currentValues[11]
+            );
+    mqttPostMessage("llearnd/device/humtemp", payload, 1);
+    sprintf(payload, "%f,%f,%f",
+                currentValues[13], currentValues[14],
+                currentValues[15]
+            );
+    mqttPostMessage("llearnd/device/accelerometer", payload, 1);
+    sprintf(payload, "%f,%f,%f",
+                currentValues[16], currentValues[17],
+                currentValues[18]
+            );
+    mqttPostMessage("llearnd/device/gyro", payload, 1);
+    sprintf(payload, "%u", (unsigned int)time(NULL));
+    mqttPostMessage("llearnd/device/time", payload, 1);
+    sprintf(payload, "%i", stmState);
+    mqttPostMessage("llearnd/device/stmState", payload, 1);
+    sprintf(payload, "%i", mState);
+    mqttPostMessage("llearnd/device/mState", payload, 1);
 }
 
 
@@ -243,26 +262,30 @@ void mqttPostDeviceStats() {
         - mqtt post at errors
  */
 void error(int num, char msg[]) {
-    printf("llearngpio error: %d - %s\n", num, msg);
+    printf("llearnd error: %d - %s\n", num, msg);
 }
 void fatal(int num, char msg[]) {
-    printf("llearngpio fatal: %d - %s\n", num, msg);
+    printf("llearnd fatal: %d - %s\n", num, msg);
     exit(num);
 }
 
 int wrLog() {
     int i;
     FILE *fp;
-    fp = fopen("/tmp/llearn/log", "a+");
+    fp = fopen(logfile, "a+");
     if(fp == NULL) {
         error((int)fp, "file open");
         return 1;
     }
     fprintf(fp, "%lld,", (long long) time(NULL));
-    for(i = 0; i < SENSORCOUNT-1; i++) {
+    for(i = 0; i < ANALOG_SENSORS; i++) {
+        fprintf(fp, "%d,", LED_ISON(currentValues[i]));
+
+    }
+    for(i = ANALOG_SENSORS; i < SENSORCOUNT; i++) {
         fprintf(fp, "%f,", currentValues[i]);
     }
-    fprintf(fp,"%f\n", currentValues[SENSORCOUNT-1]);
+    fprintf(fp, "%d\n", s0);
     fclose(fp);
     return 0;
 }
@@ -285,9 +308,12 @@ int collectLedData() {
 }
 
 
-void collectSensorData() {
+void collectShtData() {
     currentValues[ANALOG_SENSORS] = sht21GetHum();
     currentValues[ANALOG_SENSORS+1] = sht21GetTemp();
+}
+
+void collectMpuData() {
     currentValues[ANALOG_SENSORS+2] = mpu6050GetTmp();
     currentValues[ANALOG_SENSORS+3] = mpu6050GetAx();
     currentValues[ANALOG_SENSORS+4] = mpu6050GetAy();
@@ -296,7 +322,6 @@ void collectSensorData() {
     currentValues[ANALOG_SENSORS+7] = mpu6050GetGy();
     currentValues[ANALOG_SENSORS+8] = mpu6050GetGz();
 }
-
 void s0_impulse(void) {
     s0++;        //delay(50);
 }

@@ -21,11 +21,9 @@
 #define LED_KURZ 8
 #define LED_FLECKEN 9
 
-#define TIMEP_SENS_COLL 1000
-#define TIMEP_SENS_POST 5000
-#define TIMEPERIOD_PRINT 500
-#define TIMEPERIOD_PRINTLOG 5000
-#define TIMEPERIOD_MS_DEBUNK 60
+#define TIMEP_DEV_MQTT 30
+#define TIMEP_PING_MQTT 30
+#define TIMEP_LOG_WRITE 1
 
 #define STM_STATE_WAIT 0
 #define STM_STATE_RUNNING 1
@@ -55,7 +53,8 @@ int initLog();
 int wrLog();
 
 int collectLedData();
-void collectSensorData(void);
+void collectShtData(void);
+void collectMpuData(void);
 void s0_impulse(void);
 
 int mqttPostMessage(char* topic, char* message, char retained);
