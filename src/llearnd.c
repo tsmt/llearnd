@@ -21,7 +21,7 @@
 float currentValues[SENSORCOUNT];
 
 const char defLogPath[] = "/tmp/llearn";
-char *logPath = defLogPath;
+const char *logPath = defLogPath;
 char logfile[256];
 unsigned int s0 = 0;
 unsigned int stmState = STM_STATE_INIT;
@@ -33,6 +33,9 @@ time_t lastLog;
 
 /* CLI Options */
 unsigned int cli_daemon = 0;
+
+/* process & session id */
+unsigned int pid, sid;
 
 
 /* MQTT vars */
@@ -59,7 +62,7 @@ int main(int argc, char* argv[]) {
             case 'V':
                 printf("llearnd Version %s. Built %s %s\n", VERSION,
                                             __DATE__, __TIME__);
-                exit(0);
+                exit(EXIT_SUCCESS);
                 break;
             case 'h': case '?':
                 printf("llearnd Version %s. Built %s %s\n", VERSION,
@@ -68,13 +71,39 @@ int main(int argc, char* argv[]) {
                 printf("  -p\tpath=NAME\tPath of logfiles (DEFAULT /tmp/llearn)\n");
                 printf("  -V\tversion\t\tPrint version\n");
                 printf("  -h/?\thelp\t\tPrint helptext\n");
-                exit(0);
+                exit(EXIT_SUCCESS);
                 break;
         }
     }
 
     if(cli_daemon > 0) {
-        printf("TODO: daemon mode on\n");
+        pid = fork();
+        if(pid < 0) {
+            printf("fork failed\n");
+            exit(EXIT_FAILURE);
+        } else if (pid > 0) {
+            /* parent process */
+            printf("[%d]\n", pid);
+            exit(EXIT_SUCCESS);
+        }
+        /* child process */
+        pid = getpid();
+        /* umask files */
+        umask(0);
+        /* set session id */
+        sid = setsid();
+        if(sid < 0) {
+            printf("set session id failed\n");
+            exit(EXIT_FAILURE);
+        }
+        /* close stdin/out/err */
+        close(STDERR_FILENO);
+        close(STDIN_FILENO);
+        close(STDOUT_FILENO);
+        /* initialize daemon mode (source:
+            http://www.thegeekstuff.com/2012/02/c-daemon-process
+        )*/
+
     }
     /* set filesystem preferences  */
     mkdir_p(logPath);
@@ -256,7 +285,6 @@ int mqttPostMessage(char* topic, char* message, char retained) {
 }
 
 void mqttPostDeviceStats() {
-    int i = 0;
     char payload[128];
     sprintf(payload, "%d,%d,%d,%d,%d,%d,%d,%d,%d,%d",
                 LED_ISON(currentValues[0]), LED_ISON(currentValues[1]),
