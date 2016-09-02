@@ -1,6 +1,7 @@
 #ifndef _LLEARNGPIO_H
 #define _LLEARNGPIO_H
 
+#define VERSION "beta1"
 
 #define MCP1_START 100
 #define MCP2_START 108

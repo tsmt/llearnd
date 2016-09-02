@@ -20,7 +20,8 @@
 /* device Values TODO: array docu */
 float currentValues[SENSORCOUNT];
 
-const char devPath[] = "/tmp/llearn";
+const char defLogPath[] = "/tmp/llearn";
+char *logPath = defLogPath;
 char logfile[256];
 unsigned int s0 = 0;
 unsigned int stmState = STM_STATE_INIT;
@@ -29,6 +30,9 @@ unsigned int mState;
 time_t currentTime;
 time_t lastDevMqttUpdate;
 time_t lastLog;
+
+/* CLI Options */
+unsigned int cli_daemon = 0;
 
 
 /* MQTT vars */
@@ -43,9 +47,38 @@ MQTTClient_connectOptions mqttc_conopt = MQTTClient_connectOptions_initializer;
 */
 int main(int argc, char* argv[]) {
     int r;
+    /* handle CLI arguments */
+    while((r = getopt(argc, argv, "dp:Vh?")) != -1) {
+        switch(r) {
+            case 'd':
+                cli_daemon = 1;
+                break;
+            case 'p':
+                logPath = optarg;
+                break;
+            case 'V':
+                printf("llearnd Version %s. Built %s %s\n", VERSION,
+                                            __DATE__, __TIME__);
+                exit(0);
+                break;
+            case 'h': case '?':
+                printf("llearnd Version %s. Built %s %s\n", VERSION,
+                                            __DATE__, __TIME__);
+                printf("  -d\tdaemon\t\tDaemon mode on\n");
+                printf("  -p\tpath=NAME\tPath of logfiles (DEFAULT /tmp/llearn)\n");
+                printf("  -V\tversion\t\tPrint version\n");
+                printf("  -h/?\thelp\t\tPrint helptext\n");
+                exit(0);
+                break;
+        }
+    }
+
+    if(cli_daemon > 0) {
+        printf("TODO: daemon mode on\n");
+    }
     /* set filesystem preferences  */
-    mkdir_p(devPath);
-    chmod(devPath, 0777);
+    mkdir_p(logPath);
+    chmod(logPath, 0777);
 
     if((r = wiringPiSetup()) < 0 ) {
         fatal(r, "wiringPi Setup");
@@ -182,7 +215,7 @@ int stmRunning() {
 int stmPreProcess() {
     FILE *fp;
     /* TODO: open logfile, init it */
-    sprintf(logfile, "/tmp/llearn/%d.log", (unsigned int)time(NULL));
+    sprintf(logfile, "%s/%d.log", logPath, (unsigned int)time(NULL));
     fp = fopen(logfile, "w+");
     chmod(logfile, 0777);
     chown(logfile, 1000, 1000);
