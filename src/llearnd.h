@@ -47,7 +47,7 @@ int stmPostProcess();
 int stPostDevInfo();
 
 void error(int num, char msg[]);
-void fatal(int num, char msg[]);
+void critical(int num, char msg[]);
 
 int mkdir_p(const char *path);
 int initLog();

@@ -4,11 +4,12 @@
 #include <string.h>
 #include <limits.h>
 #include <time.h>
+#include <errno.h>
+#include <syslog.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <wiringPi.h>
 #include <mcp3004.h>
-#include <errno.h>
 #include "llearnd.h"
 #include "mpu6050.h"
 #include "sht21.h"
@@ -77,6 +78,9 @@ int main(int argc, char* argv[]) {
     }
 
     if(cli_daemon > 0) {
+        /* initialize daemon mode (source:
+            http://www.thegeekstuff.com/2012/02/c-daemon-process
+        )*/
         pid = fork();
         if(pid < 0) {
             printf("fork failed\n");
@@ -100,32 +104,32 @@ int main(int argc, char* argv[]) {
         close(STDERR_FILENO);
         close(STDIN_FILENO);
         close(STDOUT_FILENO);
-        /* initialize daemon mode (source:
-            http://www.thegeekstuff.com/2012/02/c-daemon-process
-        )*/
-
     }
+    /* open syslogd for error reporting */
+    setlogmask(LOG_UPTO(LOG_NOTICE));
+    openlog(argv[0], LOG_CONS | LOG_PID | LOG_NDELAY, LOG_LOCAL1);
+
     /* set filesystem preferences  */
     mkdir_p(logPath);
     chmod(logPath, 0777);
 
     if((r = wiringPiSetup()) < 0 ) {
-        fatal(r, "wiringPi Setup");
+        critical(r, "wiringPi Setup");
     }
     if((r = mcp3004Setup(MCP1_START, 0)) < 0 ) {
-        fatal(r, "mcp3208-1 Setup");
+        critical(r, "mcp3208-1 Setup");
     }
     if((r = mcp3004Setup(MCP2_START, 1)) < 0 ) {
-        fatal(r, "mcp3208-2 Setup");
+        critical(r, "mcp3208-2 Setup");
     }
     if((r = mpu6050Setup()) < 0) {
-        fatal(r, "mpu6050 Setup");
+        critical(r, "mpu6050 Setup");
     }
     if((r = sht21Setup()) < 0) {
-        fatal(r, "sht21 Setup");
+        critical(r, "sht21 Setup");
     }
     if(wiringPiISR(0, INT_EDGE_FALLING, &s0_impulse) < 0) {
-        fatal(r, "wiringPiISR");
+        critical(r, "wiringPiISR");
     }
 
     /* create client on smittens.de server. persistence is done by server */
@@ -138,6 +142,8 @@ int main(int argc, char* argv[]) {
     if((r = MQTTClient_connect(mqttc, &mqttc_conopt)) != MQTTCLIENT_SUCCESS) {
         error(r, "no mqtt connection");
     }
+
+    syslog(LOG_NOTICE, "successfully booted");
 
     return stmRun();
 }
@@ -174,7 +180,7 @@ int stmRun() {
             lastDevMqttUpdate = time(NULL);
         }
     }
-    fatal(r, "stmRun");
+    critical(r, "stmRun");
     return 0;
 }
 
@@ -323,10 +329,10 @@ void mqttPostDeviceStats() {
         - mqtt post at errors
  */
 void error(int num, char msg[]) {
-    printf("llearnd error: %d - %s\n", num, msg);
+    syslog(LOG_WARNING, "llearnd error: %d - %s", num, msg);
 }
-void fatal(int num, char msg[]) {
-    printf("llearnd fatal: %d - %s\n", num, msg);
+void critical(int num, char msg[]) {
+    syslog(LOG_CRIT, "llearnd fatal: %d - %s. Shutting down!", num, msg);
     exit(num);
 }
 
