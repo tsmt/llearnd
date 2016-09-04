@@ -8,6 +8,7 @@
 #include <limits.h>
 #include <time.h>
 #include <errno.h>
+#include <math.h>
 #include <syslog.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -20,10 +21,13 @@
 #include "config.h"
 #include "../include/MQTTClient.h"
 
+#define FDELTA(x,y) (fabsf(x - y))
+
 /* Global values */
 
 /* device Values TODO: array docu */
 float currentValues[SENSORCOUNT];
+float shakeValue;
 
 const char defLogPath[] = "/tmp/llearn";
 const char *logPath = defLogPath;
@@ -345,6 +349,8 @@ void mqttPostDeviceStats() {
     mqttPostMessage("llearnd/device/stmState", payload, 1);
     sprintf(payload, "%i", mState);
     mqttPostMessage("llearnd/device/mState", payload, 1);
+    sprintf(payload, "%f", shakeValue);
+    mqttPostMessage("llearnd/device/shakeValue", payload, 1);
 }
 
 
@@ -375,10 +381,11 @@ int wrLog() {
 
     }
     for(i = ANALOG_SENSORS; i < SENSORCOUNT; i++) {
-        fprintf(fp, "%f,", currentValues[i]);
+        fprintf(fp, "%.2f,", currentValues[i]);
     }
-    fprintf(fp, "%d\n", s0);
+    fprintf(fp, "%.2f,%d\n", shakeValue, s0);
     fclose(fp);
+    shakeValue = 0.0;
     return 0;
 }
 
@@ -406,6 +413,18 @@ void collectShtData() {
 }
 
 void collectMpuData() {
+    float Ax = 0.0, Ay = 0.0, Az = 0.0, Gx = 0.0,
+            Gy = 0.0, Gz = 0.0, delta = 0.0;
+    if(stmState == STM_STATE_RUNNING) {
+        /* save old Values */
+        Ax = currentValues[ANALOG_SENSORS+3];
+        Ay = currentValues[ANALOG_SENSORS+4];
+        Az = currentValues[ANALOG_SENSORS+5];
+        Gx = currentValues[ANALOG_SENSORS+6];
+        Gy = currentValues[ANALOG_SENSORS+7];
+        Gz = currentValues[ANALOG_SENSORS+8];
+    }
+    /* get new values */
     currentValues[ANALOG_SENSORS+2] = mpu6050GetTmp();
     currentValues[ANALOG_SENSORS+3] = mpu6050GetAx();
     currentValues[ANALOG_SENSORS+4] = mpu6050GetAy();
@@ -413,6 +432,18 @@ void collectMpuData() {
     currentValues[ANALOG_SENSORS+6] = mpu6050GetGx();
     currentValues[ANALOG_SENSORS+7] = mpu6050GetGy();
     currentValues[ANALOG_SENSORS+8] = mpu6050GetGz();
+    /* calc delta */
+    if(stmState == STM_STATE_RUNNING) {
+        delta = 0.0;
+        delta += FDELTA(Ax,currentValues[ANALOG_SENSORS+3]);
+        delta += FDELTA(Ay,currentValues[ANALOG_SENSORS+4]);
+        delta += FDELTA(Az,currentValues[ANALOG_SENSORS+5]);
+        delta += FDELTA(Gx,currentValues[ANALOG_SENSORS+6]);
+        delta += FDELTA(Gy,currentValues[ANALOG_SENSORS+7]);
+        delta += FDELTA(Gz,currentValues[ANALOG_SENSORS+8]);
+        /* add ShakeValue */
+        shakeValue += delta;
+    }
 }
 void s0_impulse(void) {
     s0++;        //delay(50);
