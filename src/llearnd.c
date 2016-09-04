@@ -1,5 +1,8 @@
+#define _GNU_SOURCE
+
 #include <stdlib.h>
 #include <stdio.h>
+#include <signal.h>
 #include <unistd.h>
 #include <string.h>
 #include <limits.h>
@@ -8,6 +11,7 @@
 #include <syslog.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 #include <wiringPi.h>
 #include <mcp3004.h>
 #include "llearnd.h"
@@ -43,10 +47,24 @@ unsigned int pid, sid;
 MQTTClient mqttc;
 MQTTClient_connectOptions mqttc_conopt = MQTTClient_connectOptions_initializer;
 
+
+void sig_exit_handler(int signum) {
+    syslog(LOG_WARNING, "Received signal %d - exiting", signum);
+    if(signum == SIGINT || signum == SIGTERM) {
+        closelog();
+        fcloseall();
+        /* TODO: * copy logfile to savepoint when in STM_STATE_RUNNING or
+                        STM_STATE_POSTPROCESS
+                 * maybe call a reboot script?
+        */
+        mqttPostMessage("llearnd/status", "offline", 1);
+        mqttPostMessage("llearnd/machine/status", "ist offline", 1);
+        MQTTClient_disconnect(mqttc, 500);
+        exit(0);
+    }
+}
 /**
  * TODO:
-    - daemon mode (fork)
-    - accept CLI input
     - signal handling
 */
 int main(int argc, char* argv[]) {
@@ -105,14 +123,7 @@ int main(int argc, char* argv[]) {
         close(STDIN_FILENO);
         close(STDOUT_FILENO);
     }
-    /* open syslogd for error reporting */
-    setlogmask(LOG_UPTO(LOG_NOTICE));
-    openlog(argv[0], LOG_CONS | LOG_PID | LOG_NDELAY, LOG_LOCAL1);
-
-    /* set filesystem preferences  */
-    mkdir_p(logPath);
-    chmod(logPath, 0777);
-
+    /* set up devices */
     if((r = wiringPiSetup()) < 0 ) {
         critical(r, "wiringPi Setup");
     }
@@ -132,6 +143,18 @@ int main(int argc, char* argv[]) {
         critical(r, "wiringPiISR");
     }
 
+    /* open syslogd for error reporting */
+    setlogmask(LOG_UPTO(LOG_NOTICE));
+    openlog(argv[0], LOG_CONS | LOG_NDELAY, LOG_LOCAL1);
+
+    /* set filesystem preferences  */
+    mkdir_p(logPath);
+    chmod(logPath, 0777);
+
+    /* set signals  */
+    signal(SIGINT, &sig_exit_handler);
+    signal(SIGTERM, &sig_exit_handler);
+
     /* create client on smittens.de server. persistence is done by server */
     MQTTClient_create(&mqttc, MQTT_ADDRESS, MQTT_CLIENTID,
             MQTTCLIENT_PERSISTENCE_NONE, NULL);
@@ -142,6 +165,7 @@ int main(int argc, char* argv[]) {
     if((r = MQTTClient_connect(mqttc, &mqttc_conopt)) != MQTTCLIENT_SUCCESS) {
         error(r, "no mqtt connection");
     }
+    mqttPostMessage("llearnd/status", "online", 1);
 
     syslog(LOG_NOTICE, "successfully booted");
 
@@ -280,6 +304,7 @@ int mqttPostMessage(char* topic, char* message, char retained) {
             error(r, "can't post, no mqtt connect");
             return 0;
         }
+        mqttPostMessage("llearnd/status", "online", 1);
     }
     msg.payload = message;
     msg.payloadlen = strlen(message);
