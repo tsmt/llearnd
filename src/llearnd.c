@@ -175,7 +175,7 @@ int stmRun() {
         /* collect new SHT data */
         collectShtData();
         collectMpuData();
-        if(currentTime > lastDevMqttUpdate + TIMEP_DEV_MQTT) {
+        if(currentTime >= lastDevMqttUpdate + TIMEP_DEV_MQTT) {
             mqttPostDeviceStats();
             lastDevMqttUpdate = time(NULL);
         }
@@ -240,7 +240,7 @@ int stmWait() {
 
 int stmRunning() {
     /* TODO: write LogFile every X seconds*/
-    if(currentTime > lastLog + TIMEP_LOG_WRITE) {
+    if(currentTime >= lastLog + TIMEP_LOG_WRITE) {
         wrLog();
         lastLog = time(NULL);
     }

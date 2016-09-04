@@ -23,7 +23,6 @@
 #define LED_FLECKEN 9
 
 #define TIMEP_DEV_MQTT 30
-#define TIMEP_PING_MQTT 30
 #define TIMEP_LOG_WRITE 1
 
 #define STM_STATE_WAIT 0
