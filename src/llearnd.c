@@ -50,6 +50,7 @@ unsigned int pid, sid;
 /* MQTT vars */
 MQTTClient mqttc;
 MQTTClient_connectOptions mqttc_conopt = MQTTClient_connectOptions_initializer;
+MQTTClient_willOptions mqttc_willopt = MQTTClient_willOptions_initializer;
 
 
 void sig_exit_handler(int signum) {
@@ -163,6 +164,10 @@ int main(int argc, char* argv[]) {
     MQTTClient_create(&mqttc, MQTT_ADDRESS, MQTT_CLIENTID,
             MQTTCLIENT_PERSISTENCE_NONE, NULL);
     /* mqttc_conopt.will = ... TODO */
+    mqttc_willopt.message = "offline";
+    mqttc_willopt.topicName = "llearnd/status";
+    mqttc_willopt.retained = 1;
+    mqttc_conopt.will = &mqttc_willopt;
     mqttc_conopt.username = MQTT_USERNAME;
     mqttc_conopt.password = MQTT_PASSWORD;
 
