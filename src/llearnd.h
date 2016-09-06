@@ -8,8 +8,8 @@
 #define ANALOG_SENSORS 10
 #define SENSORCOUNT ANALOG_SENSORS+9
 
-#define LED_THRESHOLD 0.100
-#define LED_ISON(x) (x > LED_THRESHOLD)
+#define LED_THRESHOLD 0.9
+#define LED_ISON(x) (x < LED_THRESHOLD)
 
 #define LED_WASCHEN 0
 #define LED_ENDE 1
