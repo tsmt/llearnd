@@ -1,0 +1,12 @@
+[Unit]
+Description=Laundry Learn Daemon
+
+[Service]
+Type=fork
+ExecStart=/usr/local/bin/llearnd
+ExecReload=/bin/kill -HUP $MAINPID
+KillMode=process
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

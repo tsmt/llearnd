@@ -9,6 +9,17 @@ map the laundry machine states and it will handle the different machine learning
 scripts (python with scikit-learn) to determine a final approximation for the
 laundry machine runtime.
 
+## Install
+### Install wiringPi
+### Install Daemon
+
+```
+sudo cp llearnd.service /etc/systemd/system
+sudo ./install.sh
+systemctl enable llearnd.service
+systemctl start llearnd.service
+```
+
 ## statemachine
 ### stmState
 ### stmWait
