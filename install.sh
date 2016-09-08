@@ -1,7 +1,5 @@
 #!/bin/sh
 
-make clean
-make
 echo "shutdown daemon"
 systemctl stop llearnd.service
 
