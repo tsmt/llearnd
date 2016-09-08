@@ -34,7 +34,7 @@ const char *logPath = defLogPath;
 char logfile[256];
 unsigned int s0 = 0;
 unsigned int stmState = STM_STATE_INIT;
-unsigned int mState;
+unsigned int mState = M_STATE_INIT;
 
 time_t currentTime;
 time_t lastDevMqttUpdate;
@@ -62,8 +62,7 @@ void sig_exit_handler(int signum) {
                         STM_STATE_POSTPROCESS
                  * maybe call a reboot script?
         */
-        mqttPostMessage("llearnd/status", "offline", 1);
-        mqttPostMessage("llearnd/machine/status", "ist offline", 1);
+        mqttPostMessage("llearnd/state", "offline(shutdown)", 1);
         MQTTClient_disconnect(mqttc, 500);
         exit(0);
     }
@@ -164,8 +163,8 @@ int main(int argc, char* argv[]) {
     MQTTClient_create(&mqttc, MQTT_ADDRESS, MQTT_CLIENTID,
             MQTTCLIENT_PERSISTENCE_NONE, NULL);
     /* mqttc_conopt.will = ... TODO */
-    mqttc_willopt.message = "offline";
-    mqttc_willopt.topicName = "llearnd/status";
+    mqttc_willopt.message = "offline(disconnect)";
+    mqttc_willopt.topicName = "llearnd/state";
     mqttc_willopt.retained = 1;
     mqttc_conopt.will = &mqttc_willopt;
     mqttc_conopt.username = MQTT_USERNAME;
@@ -174,7 +173,7 @@ int main(int argc, char* argv[]) {
     if((r = MQTTClient_connect(mqttc, &mqttc_conopt)) != MQTTCLIENT_SUCCESS) {
         error(r, "no mqtt connection");
     }
-    mqttPostMessage("llearnd/status", "online", 1);
+    mqttPostMessage("llearnd/state", "online", 1);
 
     syslog(LOG_NOTICE, "successfully booted");
 
@@ -226,41 +225,12 @@ int stmGetState() {
         return m;
     switch(m) {
         case M_STATE_ON_RUNNING:
-            mqttPostMessage("llearnd/machine/status", "läuft", 1);
-            /* if it comes from WAITING */
-            if(stmState == STM_STATE_WAIT) {
-                stmState = STM_STATE_PREPROCESS;
-                mqttPostMessage("llearnd/stm/status", "preprocessing", 1);
-            } else if(stmState == STM_STATE_INIT) {
-                stmState = STM_STATE_PREPROCESS;
-            } else {
-                mqttPostMessage("llearnd/stm/error",
-                    "inconsistent stm state [running]", 1);
-                error(0, "inconsistent stm state");
-            }
-            /* TODO: boot while maching running. what to do??? */
+            stmState = STM_STATE_PREPROCESS;
             break;
         case M_STATE_OFF:
         case M_STATE_ON:
-            if(m == M_STATE_ON) {
-                mqttPostMessage("llearnd/machine/status", "ist angeschaltet.", 1);
-            } else {
-                mqttPostMessage("llearnd/machine/status", "ist ausgeschaltet.", 1);
-            }
-            /* if it comes from state running */
-            if(stmState == STM_STATE_RUNNING) {
-                stmState = STM_STATE_POSTPROCESS;
-                mqttPostMessage("llearnd/stm/status", "postprocessing", 1);
-            } else if (stmState == STM_STATE_INIT) {
-                stmState = STM_STATE_WAIT;
-                mqttPostMessage("llearnd/stm/status", "waiting", 1);
-            }
-            break;
-        default:
-            mqttPostMessage("llearnd/machine/error",
-                "default machine state error", 1);
-            error (0, "inconsistent machine state");
             stmState = STM_STATE_WAIT;
+            break;
     }
     mState = m;
     mqttPostDeviceStats();
@@ -296,7 +266,6 @@ int stmPreProcess() {
 
     /* TODO: call machine learning python script to calc approximation */
     stmState = STM_STATE_RUNNING;
-    mqttPostMessage("llearnd/stm/status", "running", 1);
     return 0;
 }
 
@@ -304,7 +273,6 @@ int stmPostProcess() {
     /* TODO: copy and upload logfile */
     /* TODO: call machine learning script to use this log as training data */
     stmState = STM_STATE_WAIT;
-    mqttPostMessage("llearnd/stm/status", "waiting", 1);
     return 0;
 }
 
@@ -316,7 +284,7 @@ int mqttPostMessage(char* topic, char* message, char retained) {
         if((r = MQTTClient_connect(mqttc, &mqttc_conopt)) != MQTTCLIENT_SUCCESS) {
             return 0;
         }
-        mqttPostMessage("llearnd/status", "online", 1);
+        mqttPostMessage("llearnd/state", "online", 1);
     }
     msg.payload = message;
     msg.payloadlen = strlen(message);
@@ -351,14 +319,14 @@ void mqttPostDeviceStats() {
                 currentValues[18]
             );
     mqttPostMessage("llearnd/device/gyro", payload, 1);
-    sprintf(payload, "%u", (unsigned int)time(NULL));
-    mqttPostMessage("llearnd/device/time", payload, 1);
-    sprintf(payload, "%i", stmState);
-    mqttPostMessage("llearnd/device/stmState", payload, 1);
-    sprintf(payload, "%i", mState);
-    mqttPostMessage("llearnd/device/mState", payload, 1);
     sprintf(payload, "%f", shakeValue);
     mqttPostMessage("llearnd/device/shakeValue", payload, 1);
+    sprintf(payload, "%i", stmState);
+    mqttPostMessage("llearnd/stm/state", payload, 1);
+    sprintf(payload, "%i", mState);
+    mqttPostMessage("llearnd/machine/state", payload, 1);
+    sprintf(payload, "%u", (unsigned int)time(NULL));
+    mqttPostMessage("llearnd/time", payload, 1);
 }
 
 

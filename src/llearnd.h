@@ -32,6 +32,7 @@
 #define STM_STATE_INIT 99
 #define STM_FREQUENCY_MS 50
 
+#define M_STATE_INIT 99
 #define M_STATE_OFF 0
 #define M_STATE_ON 1
 #define M_STATE_ON_RUNNING 2
