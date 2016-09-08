@@ -310,7 +310,6 @@ int mqttPostMessage(char* topic, char* message, char retained) {
     MQTTClient_deliveryToken token;
     if(!MQTTClient_isConnected(mqttc)) {
         if((r = MQTTClient_connect(mqttc, &mqttc_conopt)) != MQTTCLIENT_SUCCESS) {
-            error(r, "can't post, no mqtt connect");
             return 0;
         }
         mqttPostMessage("llearnd/status", "online", 1);
