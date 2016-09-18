@@ -68,10 +68,8 @@ void sig_exit_handler(int signum) {
         exit(0);
     }
 }
-/**
- * TODO:
-    - signal handling
-*/
+
+
 int main(int argc, char* argv[]) {
     int r;
     /* handle CLI arguments */
