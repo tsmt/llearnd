@@ -40,6 +40,7 @@ unsigned int mState = M_STATE_INIT;
 time_t currentTime;
 time_t lastDevMqttUpdate;
 time_t lastLog;
+time_t lastStart;
 
 /* CLI Options */
 unsigned int cli_daemon = 0;
@@ -274,11 +275,11 @@ int stmPreProcess() {
     FILE *fp;
     char payload[32];
     /* TODO: open logfile, init it */
-    sprintf(logfile, "%s/%d.log", logPath, (unsigned int)time(NULL));
+    sprintf(logfile, "%s/%d.log", logPath, (unsigned int)time(&lastStart));
     fp = fopen(logfile, "w+");
     chmod(logfile, 0777);
     chown(logfile, 1000, 1000);
-    fprintf(fp, "time,a0,a1,a2,a3,a4,a5,a6,a7,a8,a9,sht21hum,sht21temp,mputemp,ax,ay,az,gx,gy,gz,s0\n");
+    fprintf(fp, "time,rotary,a0,a1,a2,a3,a4,a5,a6,a7,a8,a9,sht21hum,sht21temp,mputemp,ax,ay,az,gx,gy,gz,shake,s0\n");
     fclose(fp);
 
     sprintf(payload, "%ld", (long)time(NULL));
@@ -373,7 +374,7 @@ int wrLog() {
         error((int)fp, "file open");
         return 1;
     }
-    fprintf(fp, "%lld,", (long long) time(NULL));
+    fprintf(fp, "%lld,%d,", (long long)(time(NULL) - lastStart), rotaryState);
     for(i = 0; i < ANALOG_SENSORS; i++) {
         fprintf(fp, "%d,", LED_ISON(currentValues[i]));
 
