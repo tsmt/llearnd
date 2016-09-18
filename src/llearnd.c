@@ -28,6 +28,7 @@
 /* device Values TODO: array docu */
 float currentValues[SENSORCOUNT];
 float shakeValue;
+int rotaryState;
 
 const char defLogPath[] = "/tmp/llearn";
 const char *logPath = defLogPath;
@@ -204,6 +205,7 @@ int stmRun() {
         }
         /* check for state change */
         stmGetState();
+        rotaryState = stmGetRotaryState();
         /* collect new SHT data */
         collectShtData();
         collectMpuData();
@@ -235,6 +237,26 @@ int stmGetState() {
     mState = m;
     mqttPostDeviceStats();
     return stmState;
+}
+
+int stmGetRotaryState() {
+    int i,k;
+    float diffs[ROTARY_SETTINGS_COUNT];
+    printf("%f %f %f\n", currentValues[13], currentValues[14], currentValues[15]);
+    for(i = 0; i < ROTARY_SETTINGS_COUNT; i++) {
+        diffs[i] = fabsf(rotarySettings[i][0] - currentValues[13]);
+        diffs[i] += fabsf(rotarySettings[i][1] - currentValues[14]);
+        diffs[i] += fabsf(rotarySettings[i][2] - currentValues[15]);
+        printf("%i - %f\n", i, diffs[i]);
+    }
+    /* get smallest difference -> assume this is the right setting */
+    k = 0;
+    for(i = 1; i < ROTARY_SETTINGS_COUNT; i++) {
+        if(diffs[i] < diffs[k]) {
+            k = i;
+        }
+    }
+    return k;
 }
 
 int stmWait() {
@@ -321,6 +343,8 @@ void mqttPostDeviceStats() {
     mqttPostMessage("llearnd/device/gyro", payload, 1);
     sprintf(payload, "%f", shakeValue);
     mqttPostMessage("llearnd/device/shakeValue", payload, 1);
+    sprintf(payload, "%i", rotaryState);
+    mqttPostMessage("llearnd/device/rotaryState", payload, 1);
     sprintf(payload, "%i", stmState);
     mqttPostMessage("llearnd/stm/state", payload, 1);
     sprintf(payload, "%i", mState);
