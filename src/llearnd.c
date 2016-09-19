@@ -241,12 +241,10 @@ int stmGetState() {
 int stmGetRotaryState() {
     int i,k;
     float diffs[ROTARY_SETTINGS_COUNT];
-    printf("%f %f %f\n", currentValues[13], currentValues[14], currentValues[15]);
     for(i = 0; i < ROTARY_SETTINGS_COUNT; i++) {
         diffs[i] = fabsf(rotarySettings[i][0] - currentValues[13]);
         diffs[i] += fabsf(rotarySettings[i][1] - currentValues[14]);
         diffs[i] += fabsf(rotarySettings[i][2] - currentValues[15]);
-        printf("%i - %f\n", i, diffs[i]);
     }
     /* get smallest difference -> assume this is the right setting */
     k = 0;
