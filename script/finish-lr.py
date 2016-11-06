@@ -11,13 +11,14 @@
 import glob, os, sys
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
+import warnings
+import argparse
+import configparser
+import paho.mqtt.client as mqttc
+
 from sklearn.cross_validation import train_test_split
 from sklearn.linear_model import LinearRegression
 from sklearn import metrics
-import warnings
-import argparse
 
 parser = argparse.ArgumentParser(description="LLearn Finishtimes Script")
 parser.add_argument('-d', '--directory', help='Directory of training data', default="./testlogs")
@@ -25,6 +26,9 @@ parser.add_argument('-r', '--rotary', type=int, help='Rotary switch setting', de
 parser.add_argument('-s', '--short', type=int, help='Short mode [0/1]', default=0)
 args = parser.parse_args()
 #print(args)
+
+config = configparser.ConfigParser()
+config.read('mqtt.ini')
 
 # ig
 warnings.filterwarnings(action="ignore", module="scipy", message="^internal gelsd")
@@ -131,3 +135,9 @@ pred = linreg.predict(llearnpred)
 
 # print
 print(pred[0],sqrerr,abserr)
+
+# connect to MQTT client
+mclient = mqttc.Client()
+mclient.username_pw_set(config['MQTT']['USER'], config['MQTT']['PASS'])
+mclient.connect(config['MQTT']['SERVER'], int(config['MQTT']['PORT']), 60)
+mclient.publish("llearnd/learn/linear", str(int(pred[0])), retain=True)
