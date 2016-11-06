@@ -24,3 +24,6 @@ llearnd: $(OBJ)
 clean:
 	@rm $(TARGET)
 	@rm -f $(OBJ)
+
+install:
+	./install.sh
