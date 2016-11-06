@@ -1,4 +1,4 @@
-#!/usr/bin/python
+# coding: utf-8
 
 ##
 # Derive finish timestamp with Linear Regression
@@ -8,13 +8,28 @@
 
 ## imports and chdir
 
-import glob, os
+import glob, os, sys
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-os.chdir("logs/")
+from sklearn.cross_validation import train_test_split
+from sklearn.linear_model import LinearRegression
+from sklearn import metrics
+import warnings
+import argparse
 
+parser = argparse.ArgumentParser(description="LLearn Finishtimes Script")
+parser.add_argument('-d', '--directory', help='Directory of training data', default="./testlogs")
+parser.add_argument('-r', '--rotary', type=int, help='Rotary switch setting', default=0)
+parser.add_argument('-s', '--short', type=int, help='Short mode [0/1]', default=0)
+args = parser.parse_args()
+#print(args)
+
+# ig
+warnings.filterwarnings(action="ignore", module="scipy", message="^internal gelsd")
+# go to testdir
+os.chdir(args.directory)
 
 #
 # ## fetch and sort data
@@ -71,9 +86,17 @@ def renameRotaryValues(source, remap):
         i['rotary'] = remap[i['rotary']]
     return source
 
+# derive mean value map
 remap = deriveMeanValueRemap(llearn_data, rot_nums)
+
+# rename rotary values with map
 llearn_data = renameRotaryValues(llearn_data, remap)
+prediction_data = renameRotaryValues([{'rotary': args.rotary, 'short': args.short}], remap)
+
+# make a pandas dataframes
 llearnpd = pd.DataFrame.from_records(llearn_data)
+llearnpred = pd.DataFrame.from_records(prediction_data)
+# print(llearnpred)
 
 # Linear Regression:
 # split set into X and y
@@ -84,13 +107,11 @@ y = llearnpd["duration"]
 
 
 # ### split training and test sets
-from sklearn.cross_validation import train_test_split
 X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=1)
 
 
 # ### linear regression with scikit
 # import model
-from sklearn.linear_model import LinearRegression
 
 # instantiate
 linreg = LinearRegression()
@@ -100,19 +121,13 @@ linreg.fit(X_train, y_train)
 # ### make a predition
 # make predictions on the testing set
 y_pred = linreg.predict(X_test)
-from sklearn import metrics
 
+# calculate RMAE and Absolue Error
+sqrerr = np.sqrt(metrics.mean_squared_error(y_test, y_pred))
+abserr = metrics.mean_absolute_error(y_test, y_pred)
 
-# ### calculate errors
-# In[11]:
-print(np.sqrt(metrics.mean_squared_error(y_test, y_pred)))
-# In[12]:
-print(np.sqrt(metrics.mean_absolute_error(y_test, y_pred)))
+# load testitem and do a prediction
+pred = linreg.predict(llearnpred)
 
-
-# ### playground
-
-# In[30]:
-
-testitem = pd.DataFrame.from_records([{'rotary': 1, 'short': 0}]) # , 'spin': 0, 'short': 0
-linreg.predict(testitem)
+# print
+print(pred[0],sqrerr,abserr)
