@@ -30,6 +30,15 @@ args = parser.parse_args()
 config = configparser.ConfigParser()
 config.read('mqtt.ini')
 
+## connect mqtt and update
+
+
+# connect to MQTT client
+mclient = mqttc.Client()
+mclient.username_pw_set(config['MQTT']['USER'], config['MQTT']['PASS'])
+mclient.connect(config['MQTT']['SERVER'], int(config['MQTT']['PORT']), 60)
+mclient.publish("llearnd/learn/linear", "rechnen...", retain=True)
+
 # ig
 warnings.filterwarnings(action="ignore", module="scipy", message="^internal gelsd")
 # go to testdir
@@ -137,7 +146,5 @@ pred = linreg.predict(llearnpred)
 print(pred[0],sqrerr,abserr)
 
 # connect to MQTT client
-mclient = mqttc.Client()
-mclient.username_pw_set(config['MQTT']['USER'], config['MQTT']['PASS'])
-mclient.connect(config['MQTT']['SERVER'], int(config['MQTT']['PORT']), 60)
 mclient.publish("llearnd/learn/linear", str(int(pred[0])), retain=True)
+mclient.disconnect()
