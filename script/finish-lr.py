@@ -22,13 +22,15 @@ from sklearn import metrics
 
 parser = argparse.ArgumentParser(description="LLearn Finishtimes Script")
 parser.add_argument('-d', '--directory', help='Directory of training data', default="./testlogs")
+parser.add_argument('-c', '--config', help='config file', default="./mqtt.ini")
 parser.add_argument('-r', '--rotary', type=int, help='Rotary switch setting', default=0)
 parser.add_argument('-s', '--short', type=int, help='Short mode [0/1]', default=0)
+parser.add_argument('-t', '--timestamp', type=int, help='timestamp for start', default=0)
 args = parser.parse_args()
 #print(args)
 
 config = configparser.ConfigParser()
-config.read('mqtt.ini')
+config.read(args.config)
 
 ## connect mqtt and update
 
@@ -37,9 +39,12 @@ config.read('mqtt.ini')
 mclient = mqttc.Client()
 mclient.username_pw_set(config['MQTT']['USER'], config['MQTT']['PASS'])
 mclient.connect(config['MQTT']['SERVER'], int(config['MQTT']['PORT']), 60)
-mclient.publish("llearnd/learn/linear", "rechnen...", retain=True)
+mclient.publish("llearnd/learn/text", "rechnen...", retain=True)
+mclient.publish("llearnd/learn/rotary", str(args.rotary), retain=True)
+mclient.publish("llearnd/learn/short", str(args.short), retain=True)
+mclient.publish("llearnd/learn/timestamp", str(args.timestamp), retain=True)
 
-# ig
+# ignore filterwarning in scikit
 warnings.filterwarnings(action="ignore", module="scipy", message="^internal gelsd")
 # go to testdir
 os.chdir(args.directory)
@@ -143,8 +148,8 @@ abserr = metrics.mean_absolute_error(y_test, y_pred)
 pred = linreg.predict(llearnpred)
 
 # print
-print(pred[0],sqrerr,abserr)
+endtime = int(pred[0]) + args.timestamp;
 
 # connect to MQTT client
-mclient.publish("llearnd/learn/linear", str(int(pred[0])), retain=True)
+mclient.publish("llearnd/learn/text", str(endtime), retain=True)
 mclient.disconnect()

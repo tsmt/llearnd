@@ -13,4 +13,4 @@ echo "mk logfile folder"
 mkdir -p /var/log/llearnd
 
 echo "restart service"
-systemctl start llearnd.service
+#systemctl start llearnd.service

@@ -270,8 +270,11 @@ int stmRunning() {
 }
 
 int stmPreProcess() {
+    int r;
     FILE *fp;
     char payload[32];
+    char rotary[2];
+    char shrt[1];
     /* TODO: open logfile, init it */
     sprintf(logfile, "%s/%d.log", logPath, (unsigned int)time(&lastStart));
     fp = fopen(logfile, "w+");
@@ -284,6 +287,18 @@ int stmPreProcess() {
     mqttPostMessage("llearnd/machine/lastBegin", payload, 1);
 
     /* TODO: call machine learning python script to calc approximation */
+    rotaryState = stmGetRotaryState();
+
+    sprintf(rotary, "%d", rotaryState);
+    sprintf(shrt, "%d", LED_ISON(currentValues[6]));
+
+    r = fork();
+    if(r == 0) {
+        execlp("python3", "python3", "/usr/local/bin/finish-lr.py", 
+                "-c", "/usr/local/bin/mqtt.ini", "-d", "/var/log/llearnd", 
+                "-r", rotary ,"-s", shrt, "-t", payload, (char*)0);
+        exit(-1);
+    }
     stmState = STM_STATE_RUNNING;
     return 0;
 }
