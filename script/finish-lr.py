@@ -49,6 +49,105 @@ warnings.filterwarnings(action="ignore", module="scipy", message="^internal gels
 # go to testdir
 os.chdir(args.directory)
 
+
+##############
+### Functions
+##############
+
+######
+## Reorder Rotary Values
+##
+## These functions reorder the rotary values, so a linear regression
+## algorithm has an easier way to calculate a good line.
+## The difference in mean squared error is 1900 to 599
+######
+
+
+def deriveMeanValueRemap(data, array):
+    dictmap = {}
+    for i in array:
+        item = {}
+        duration = None
+        for dfi in data:
+            if dfi['rotary'] == i:
+                if duration == None:
+                    duration = dfi['duration']
+                else:
+                    duration = (duration + dfi['duration']) / 2
+        item['meanDuration'] = duration
+        dictmap[i] = item
+    dictmap = sorted(dictmap.items(), key=lambda k: k[1]['meanDuration'])
+    remap = {}
+    for i in range(0, len(dictmap)):
+        remap[dictmap[i][0]] = i
+    return remap
+
+def renameRotaryValues(source, remap):
+    for i in source:
+        i['rotary'] = remap[i['rotary']]
+    return source
+
+######
+## Mean Values for Rotary Settings
+##
+## This is a trivial algorithm to calulate
+## the mean values for each wash setting
+######
+
+def deriveMeanValuesForRotary(X, y):
+    means = {}
+    # For every possible rotary state
+    means['all'] = 0
+    for i in np.unique(X.rotary):
+        rotary = {}
+        rotary['meanShort'] = 0
+        rotary['mean'] = 0
+        rotary['length'] = 0
+        for k in X.index:
+            #print(X.ix[k].rotary)
+            if(X.ix[k].rotary == i):
+                #print(ele['rotary'], ele['short'], ele['duration'])
+
+                #derive whole mean for short
+                if(X.ix[k].short == 1):
+                    if(rotary['meanShort'] != 0):
+                        rotary['meanShort'] = (rotary['meanShort'] + y.ix[k]) / 2
+                    else:
+                        rotary['meanShort'] = y.ix[k]
+
+                # derive whole mean for non short
+                else:
+                    if(rotary['mean'] != 0):
+                        rotary['mean'] = (rotary['mean'] + y.ix[k]) / 2
+                    else:
+                        rotary['mean'] = y.ix[k]
+                rotary['length'] = rotary['length'] + 1
+                #print(rotary)
+
+            # derive whole mean
+            if(means['all'] != 0):
+                means['all'] = (means['all'] + y.ix[k]) / 2
+            else:
+                means['all'] = y.ix[k]
+
+        means[i] = rotary
+    return means
+
+# predict for input X with meanValue
+def predictWashTime(X, Mean):
+    y = []
+    for k in X.index:
+        if X.ix[k].short == 1 and Mean[X.ix[k].rotary]['meanShort'] > 0:
+            y.append(Mean[X.ix[k].rotary]['meanShort'])
+        elif X.ix[k].short == 0 and Mean[X.ix[k].rotary]['mean'] > 0:
+            y.append(Mean[X.ix[k].rotary]['mean'])
+        else:
+            y.append(Mean['all'])
+
+    return y
+
+
+
 #
 # ## fetch and sort data
 #
@@ -80,30 +179,6 @@ for filename in glob.glob("*.log"):
 llearnpd = pd.DataFrame.from_records(llearn_data)
 rot_nums = np.unique(llearnpd.rotary)
 
-def deriveMeanValueRemap(data, array):
-    dictmap = {}
-    for i in array:
-        item = {}
-        duration = None
-        for dfi in data:
-            if dfi['rotary'] == i:
-                if duration == None:
-                    duration = dfi['duration']
-                else:
-                    duration = (duration + dfi['duration']) / 2
-        item['meanDuration'] = duration
-        dictmap[i] = item
-    dictmap = sorted(dictmap.items(), key=lambda k: k[1]['meanDuration'])
-    remap = {}
-    for i in range(0, len(dictmap)):
-        remap[dictmap[i][0]] = i
-    return remap
-
-def renameRotaryValues(source, remap):
-    for i in source:
-        i['rotary'] = remap[i['rotary']]
-    return source
-
 # derive mean value map
 remap = deriveMeanValueRemap(llearn_data, rot_nums)
 
@@ -114,18 +189,16 @@ prediction_data = renameRotaryValues([{'rotary': args.rotary, 'short': args.shor
 # make a pandas dataframes
 llearnpd = pd.DataFrame.from_records(llearn_data)
 llearnpred = pd.DataFrame.from_records(prediction_data)
-# print(llearnpred)
 
-# Linear Regression:
-# split set into X and y
 # Prepare feature set of relevant settings
 X = llearnpd[["rotary", "short"]]
 # Prepare y
 y = llearnpd["duration"]
 
 
-# ### split training and test sets
-#X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=1)
+#####
+# Linear Regression
+#####
 # instantiate
 linreg = LinearRegression()
 # fit the model to the training data (learn the coefficients)
@@ -133,18 +206,24 @@ linreg.fit(X, y)
 
 # ### make a predition
 # make predictions on the testing set
-y_pred = linreg.predict(X_test)
+lin_pred = linreg.predict(llearnpred)
 
-# calculate RMAE and Absolue Error !!!!!!!!! TO DO THIS UNCOMMENT train_test_split
-# sqrerr = np.sqrt(metrics.mean_squared_error(y_test, y_pred))
-# abserr = metrics.mean_absolute_error(y_test, y_pred)
+
+#####
+# Own Algorithm
+#####
+meanValues = deriveMeanValuesForRotary(X, y)
+own_pred = predictWashTime(llearnpred, meanValues)
+
 
 # load testitem and do a prediction
-pred = linreg.predict(llearnpred)
 
 # print
-endtime = int(pred[0]) + args.timestamp;
+lin_endtime = int(lin_pred[0]) + args.timestamp;
+own_endtime = int(own_pred[0]) + args.timestamp;
 
 # connect to MQTT client
-mclient.publish("llearnd/learn/text", str(endtime), retain=True)
+mclient.publish("llearnd/learn/linreg", str(lin_endtime), retain=True)
+mclient.publish("llearnd/learn/ownpred", str(own_endtime), retain=True)
+mclient.publish("llearnd/learn/text", str(own_endtime), retain=True)
 mclient.disconnect()
