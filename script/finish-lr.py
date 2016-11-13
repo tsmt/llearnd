@@ -125,24 +125,19 @@ y = llearnpd["duration"]
 
 
 # ### split training and test sets
-X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=1)
-
-
-# ### linear regression with scikit
-# import model
-
+#X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=1)
 # instantiate
 linreg = LinearRegression()
 # fit the model to the training data (learn the coefficients)
-linreg.fit(X_train, y_train)
+linreg.fit(X, y)
 
 # ### make a predition
 # make predictions on the testing set
 y_pred = linreg.predict(X_test)
 
-# calculate RMAE and Absolue Error
-sqrerr = np.sqrt(metrics.mean_squared_error(y_test, y_pred))
-abserr = metrics.mean_absolute_error(y_test, y_pred)
+# calculate RMAE and Absolue Error !!!!!!!!! TO DO THIS UNCOMMENT train_test_split
+# sqrerr = np.sqrt(metrics.mean_squared_error(y_test, y_pred))
+# abserr = metrics.mean_absolute_error(y_test, y_pred)
 
 # load testitem and do a prediction
 pred = linreg.predict(llearnpred)
