@@ -82,10 +82,15 @@ def deriveMeanValueRemap(data, array):
         remap[dictmap[i][0]] = i
     return remap
 
-def renameRotaryValues(source, remap):
-    for i in source:
-        i['rotary'] = remap[i['rotary']]
-    return source
+def renameRotaryValues(source, swmap):
+    dst = source[:]
+    for i in dst:
+        if i['rotary'] in swmap:
+            i['rotary'] = swmap[i['rotary']]
+        else:
+            # unknown setting. remap it to "middle"
+            i['rotary'] = int(len(swmap)/2)
+    return dst
 
 ######
 ## Mean Values for Rotary Settings
