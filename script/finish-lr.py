@@ -15,6 +15,7 @@ import warnings
 import argparse
 import configparser
 import paho.mqtt.client as mqttc
+import time
 
 from sklearn.cross_validation import train_test_split
 from sklearn.linear_model import LinearRegression
@@ -231,4 +232,5 @@ own_endtime = int(own_pred[0]) + args.timestamp;
 mclient.publish("llearnd/learn/linreg", str(lin_endtime), retain=True)
 mclient.publish("llearnd/learn/ownpred", str(own_endtime), retain=True)
 mclient.publish("llearnd/learn/text", str(own_endtime), retain=True)
+time.sleep(3)
 mclient.disconnect()
