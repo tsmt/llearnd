@@ -1,7 +1,7 @@
 #!/bin/sh
 
-echo "shutdown daemon"
-systemctl stop llearnd.service
+#echo "shutdown daemon"
+#systemctl stop llearnd.service
 
 echo "copy files"
 cp llearnd /usr/local/bin/llearnd
@@ -13,4 +13,4 @@ echo "mk logfile folder"
 mkdir -p /var/log/llearnd
 
 echo "restart service"
-#systemctl start llearnd.service
+systemctl restart llearnd.service
