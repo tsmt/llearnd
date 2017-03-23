@@ -10,7 +10,7 @@ LDFLAGS	= -L/usr/local/lib -Llib
 LDLIBS    = -lwiringPi -lwiringPiDev -lpthread -lm -lpaho-mqtt3c
 
 TARGET=llearnd
-SRC= src/llearnd.c src/mpu6050.c src/sht21.c
+SRC= src/llearnd.c src/mpu6050.c src/sht21.c src/mcp3208.c
 OBJ= $(SRC:.c=.o)
 
 llearnd: $(OBJ)

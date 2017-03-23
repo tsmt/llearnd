@@ -14,7 +14,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <wiringPi.h>
-#include <mcp3004.h>
+#include "mcp3208.h"
 #include "llearnd.h"
 #include "mpu6050.h"
 #include "sht21.h"
@@ -131,10 +131,10 @@ int main(int argc, char* argv[]) {
     if((r = wiringPiSetup()) < 0 ) {
         critical(r, "wiringPi Setup");
     }
-    if((r = mcp3004Setup(MCP1_START, 0)) < 0 ) {
+    if((r = mcp3208Setup(MCP1_START, 0)) < 0 ) {
         critical(r, "mcp3208-1 Setup");
     }
-    if((r = mcp3004Setup(MCP2_START, 1)) < 0 ) {
+    if((r = mcp3208Setup(MCP2_START, 1)) < 0 ) {
         critical(r, "mcp3208-2 Setup");
     }
     if((r = mpu6050Setup()) < 0) {
